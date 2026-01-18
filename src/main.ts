@@ -5,16 +5,13 @@ import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  console.log("ADMIN_EMAIL AT BOOT =", process.env.ADMIN_EMAIL);
-  console.log("ADMIN_PASSWORD AT BOOT =", process.env.ADMIN_PASSWORD);
-
-  // ✅ Enable CORS for Vercel frontends
   app.enableCors({
     origin: [
-      "https://web-nexa-front-end.vercel.app",   // Landing page
-      "https://web-nexa-dashboard.vercel.app",    // Admin dashboard
+      "https://web-nexa-front-end.vercel.app",
+      "https://web-nexa-dashboard.vercel.app",
     ],
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+    allowedHeaders: "Content-Type, Authorization",
     credentials: true,
   });
 
