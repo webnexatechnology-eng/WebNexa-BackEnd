@@ -4,22 +4,27 @@ import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
   console.log("ADMIN_EMAIL AT BOOT =", process.env.ADMIN_EMAIL);
-console.log("ADMIN_PASSWORD AT BOOT =", process.env.ADMIN_PASSWORD);
+  console.log("ADMIN_PASSWORD AT BOOT =", process.env.ADMIN_PASSWORD);
 
-
+  // ✅ Enable CORS for Vercel frontends
   app.enableCors({
-     origin: [
-    'http://localhost:5173', // main website
-    'http://localhost:5174', // admin dashboard
-  ],
+    origin: [
+      "https://web-nexa-front-end.vercel.app",   // Landing page
+      "https://web-nexa-dashboard.vercel.app",    // Admin dashboard
+    ],
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    credentials: true,
   });
 
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix("api");
   app.useGlobalPipes(new ValidationPipe());
 
-  await app.listen(3000);
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
 
+  console.log("Backend running on port:", port);
 }
 
 bootstrap();
