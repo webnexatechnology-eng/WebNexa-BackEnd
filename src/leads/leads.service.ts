@@ -10,15 +10,21 @@ export class LeadsService {
   constructor(
     @InjectModel(Lead.name) private leadModel: Model<Lead>,
     private mailService: MailService,
-  ) { }
+  ) {}
 
+  // ✅ CREATE LEAD (FAST RESPONSE)
   async create(dto: CreateLeadDto) {
     const lead = await this.leadModel.create(dto);
 
-    await this.mailService.sendClientMail(dto.email, dto.name);
-    await this.mailService.sendAdminMail(dto);
+    // 🔥 Send mails in background (DO NOT AWAIT)
+    this.mailService.sendClientMail(dto.email, dto.name).catch(console.error);
+    this.mailService.sendAdminMail(dto).catch(console.error);
 
-    return { success: true };
+    // ✅ RETURN IMMEDIATELY
+    return {
+      success: true,
+      message: "Lead submitted successfully",
+    };
   }
 
   async findAll() {
@@ -32,27 +38,25 @@ export class LeadsService {
   }
 
   async updateStatus(id: string, status: string) {
-  const lead = await this.leadModel.findByIdAndUpdate(
-    id,
-    { status },
-    { new: true },
-  );
-
-  if (!lead) {
-    throw new NotFoundException("Lead not found");
-  }
-
-  if (status === "contacted") {
-    await this.mailService.sendContactedMail(
-      lead.email,
-      lead.name
+    const lead = await this.leadModel.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true },
     );
+
+    if (!lead) {
+      throw new NotFoundException("Lead not found");
+    }
+
+    // 🔥 Send contacted mail in background
+    if (status === "contacted") {
+      this.mailService
+        .sendContactedMail(lead.email, lead.name)
+        .catch(console.error);
+    }
+
+    return lead;
   }
-
-  return lead;
-}
-
-
 
   async delete(id: string) {
     const lead = await this.leadModel.findByIdAndDelete(id);
@@ -61,24 +65,23 @@ export class LeadsService {
   }
 
   async getStats() {
-  const total = await this.leadModel.countDocuments();
+    const total = await this.leadModel.countDocuments();
 
-  const newLeads = await this.leadModel.countDocuments({ status: "new" });
-  const contacted = await this.leadModel.countDocuments({ status: "contacted" });
-  const converted = await this.leadModel.countDocuments({ status: "converted" });
+    const newLeads = await this.leadModel.countDocuments({ status: "new" });
+    const contacted = await this.leadModel.countDocuments({ status: "contacted" });
+    const converted = await this.leadModel.countDocuments({ status: "converted" });
 
-  const recent = await this.leadModel
-    .find()
-    .sort({ createdAt: -1 })
-    .limit(5);
+    const recent = await this.leadModel
+      .find()
+      .sort({ createdAt: -1 })
+      .limit(5);
 
-  return {
-    total,
-    newLeads,
-    contacted,
-    converted,
-    recent,
-  };
-}
-
+    return {
+      total,
+      newLeads,
+      contacted,
+      converted,
+      recent,
+    };
+  }
 }
