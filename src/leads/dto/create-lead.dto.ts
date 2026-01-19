@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateLeadDto {
   @IsNotEmpty()
@@ -6,6 +6,18 @@ export class CreateLeadDto {
 
   @IsEmail()
   email: string;
+
+  @IsOptional()
+  company?: string;
+
+  @IsNotEmpty()
+  projectType: string;
+
+  @IsNotEmpty()
+  budget: string;
+
+  @IsNotEmpty()
+  timeline: string;
 
   @IsNotEmpty()
   message: string;

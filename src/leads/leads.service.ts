@@ -14,18 +14,22 @@ export class LeadsService {
 
   // ✅ CREATE LEAD (FAST RESPONSE)
   async create(dto: CreateLeadDto) {
+  try {
     const lead = await this.leadModel.create(dto);
 
-    // 🔥 Send mails in background (DO NOT AWAIT)
     this.mailService.sendClientMail(dto.email, dto.name).catch(console.error);
     this.mailService.sendAdminMail(dto).catch(console.error);
 
-    // ✅ RETURN IMMEDIATELY
     return {
       success: true,
       message: "Lead submitted successfully",
     };
+  } catch (err) {
+    console.error(err);
+    throw new Error("Failed to save lead");
   }
+}
+
 
   async findAll() {
     return this.leadModel.find().sort({ createdAt: -1 });
