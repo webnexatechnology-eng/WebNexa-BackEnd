@@ -7,21 +7,21 @@ async function bootstrap() {
 
   app.enableCors({
     origin: [
-      "https://web-nexa-front-end.vercel.app",
-      "https://web-nexa-dashboard.vercel.app",
+      'https://webnexatech.vercel.app',          // 🌐 main website
+      'https://web-nexa-dashboard.vercel.app',   // 🛠 admin dashboard
     ],
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
-    allowedHeaders: "Content-Type, Authorization",
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   });
 
-  app.setGlobalPrefix("api");
+  app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe());
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
-  console.log("Backend running on port:", port);
+  console.log("Server running on port", port);
 }
 
 bootstrap();
