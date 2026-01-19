@@ -59,6 +59,13 @@ export class LeadsService {
         .catch(console.error);
     }
 
+    if (status === "converted") {
+  this.mailService
+    .sendConvertedMail(lead.email, lead.name)
+    .catch(console.error);
+}
+
+
     return lead;
   }
 
