@@ -10,25 +10,25 @@ export class LeadsService {
   constructor(
     @InjectModel(Lead.name) private leadModel: Model<Lead>,
     private mailService: MailService,
-  ) {}
+  ) { }
 
   // ✅ CREATE LEAD (FAST RESPONSE)
   async create(dto: CreateLeadDto) {
-  try {
-    const lead = await this.leadModel.create(dto);
+    try {
+      const lead = await this.leadModel.create(dto);
 
-    this.mailService.sendClientMail(dto.email, dto.name).catch(console.error);
-    this.mailService.sendAdminMail(dto).catch(console.error);
+      this.mailService.sendClientMail(dto.email, dto.name).catch(console.error);
+      this.mailService.sendAdminMail(dto).catch(console.error);
 
-    return {
-      success: true,
-      message: "Lead submitted successfully",
-    };
-  } catch (err) {
-    console.error(err);
-    throw new Error("Failed to save lead");
+      return {
+        success: true,
+        message: "Lead submitted successfully",
+      };
+    } catch (err) {
+      console.error(err);
+      throw new Error("Failed to save lead");
+    }
   }
-}
 
 
   async findAll() {
@@ -54,16 +54,13 @@ export class LeadsService {
 
     // 🔥 Send contacted mail in background
     if (status === "contacted") {
-      this.mailService
-        .sendContactedMail(lead.email, lead.name)
-        .catch(console.error);
+      this.mailService.sendContactedMail(lead.email, lead.name).catch(console.error);
     }
 
     if (status === "converted") {
-  this.mailService
-    .sendConvertedMail(lead.email, lead.name)
-    .catch(console.error);
-}
+      this.mailService.sendConvertedMail(lead.email, lead.name).catch(console.error);
+    }
+
 
 
     return lead;
