@@ -10,7 +10,7 @@ export class LeadsService {
   constructor(
     @InjectModel(Lead.name) private leadModel: Model<Lead>,
     private mailService: MailService,
-  ) { }
+  ) {}
 
   // ✅ CREATE LEAD (FAST RESPONSE)
   async create(dto: CreateLeadDto) {
@@ -22,14 +22,13 @@ export class LeadsService {
 
       return {
         success: true,
-        message: "Lead submitted successfully",
+        message: 'Lead submitted successfully',
       };
     } catch (err) {
       console.error(err);
-      throw new Error("Failed to save lead");
+      throw new Error('Failed to save lead');
     }
   }
-
 
   async findAll() {
     return this.leadModel.find().sort({ createdAt: -1 });
@@ -49,19 +48,16 @@ export class LeadsService {
     );
 
     if (!lead) {
-      throw new NotFoundException("Lead not found");
+      throw new NotFoundException('Lead not found');
     }
 
-    // 🔥 Send contacted mail in background
-    if (status === "contacted") {
+    if (status === 'contacted') {
       this.mailService.sendContactedMail(lead.email, lead.name).catch(console.error);
     }
 
-    if (status === "converted") {
+    if (status === 'converted') {
       this.mailService.sendConvertedMail(lead.email, lead.name).catch(console.error);
     }
-
-
 
     return lead;
   }
@@ -74,15 +70,11 @@ export class LeadsService {
 
   async getStats() {
     const total = await this.leadModel.countDocuments();
+    const newLeads = await this.leadModel.countDocuments({ status: 'new' });
+    const contacted = await this.leadModel.countDocuments({ status: 'contacted' });
+    const converted = await this.leadModel.countDocuments({ status: 'converted' });
 
-    const newLeads = await this.leadModel.countDocuments({ status: "new" });
-    const contacted = await this.leadModel.countDocuments({ status: "contacted" });
-    const converted = await this.leadModel.countDocuments({ status: "converted" });
-
-    const recent = await this.leadModel
-      .find()
-      .sort({ createdAt: -1 })
-      .limit(5);
+    const recent = await this.leadModel.find().sort({ createdAt: -1 }).limit(5);
 
     return {
       total,
