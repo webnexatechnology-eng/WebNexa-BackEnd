@@ -11,12 +11,13 @@ export class MailService {
     this.transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT),
-      secure: false,
+      secure: false, // must be false for 587
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
     });
+
   }
 
   // 1️⃣ Auto reply to client
