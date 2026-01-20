@@ -1,87 +1,94 @@
-import { Injectable, notequal } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
-import { CreateLeadDto } from '../leads/dto/create-lead.dto';
 
 @Injectable()
 export class MailService {
-  private readonly apiKey = process.env.BREVO_API_KEY;
-  private readonly apiUrl = 'https://api.brevo.com/v3/smtp/email';
+  private readonly logger = new Logger(MailService.name);
 
-  private readonly headers = {
-    'api-key': this.apiKey,
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-  };
+  private readonly BREVO_API = 'https://api.brevo.com/v3/smtp/email';
+  private readonly API_KEY = process.env.BREVO_API_KEY;
+  private readonly FROM_EMAIL = process.env.MAIL_FROM || '';
+private readonly ADMIN_EMAIL = process.env.ADMIN_EMAIL || '';
 
-  private async send(payload: any) {
+
+  private async sendMail(to: string, subject: string, html: string) {
     try {
-      await axios.post(this.apiUrl, payload, { headers: this.headers });
-    } catch (err: any) {
-      console.error('Brevo API Error:', err?.response?.data || err.message);
-      throw err;
+      await axios.post(
+        this.BREVO_API,
+        {
+          sender: { email: this.FROM_EMAIL, name: 'WebNexa Tech' },
+          to: [{ email: to }],
+          subject,
+          htmlContent: html,
+        },
+        {
+          headers: {
+            'api-key': this.API_KEY,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+    } catch (err) {
+      this.logger.error('Mail failed', err?.response?.data || err.message);
     }
   }
 
-  // ✅ 1. Auto reply to client when lead is created
+  // 1️⃣ Client auto-reply
   async sendClientMail(to: string, name: string) {
-    return this.send({
-      sender: { name: 'WebNexa Tech', email: process.env.MAIL_FROM },
-      to: [{ email: to, name }],
-      subject: 'Thanks for contacting WebNexa Tech',
-      htmlContent: `
-        <h2>Hello ${name},</h2>
-        <p>Thank you for contacting <b>WebNexa Tech</b>.</p>
-        <p>We have received your request and will contact you within 24 hours.</p>
-        <br/>
-        <p>Best regards,<br/>WebNexa Tech Team</p>
+    return this.sendMail(
+      to,
+      'Thanks for contacting WebNexa',
+      `
+      <h2>Hello ${name},</h2>
+      <p>Thank you for contacting <b>WebNexa Tech</b>.</p>
+      <p>We have received your request and will contact you within 24 hours.</p>
+      <br/>
+      <p>Regards,<br/>WebNexa Team</p>
       `,
-    });
+    );
   }
 
-  // ✅ 2. Notify admin when new lead is created
-  async sendAdminMail(dto: CreateLeadDto) {
-    return this.send({
-      sender: { name: 'WebNexa Website', email: process.env.MAIL_FROM },
-      to: [{ email: process.env.ADMIN_EMAIL, name: 'Admin' }],
-      subject: '🚀 New Lead Received',
-      htmlContent: `
-        <h2>New Lead Received</h2>
-        <p><b>Name:</b> ${dto.name}</p>
-        <p><b>Email:</b> ${dto.email}</p>
-        <p><b>Message:</b> ${dto.message}</p>
+  // 2️⃣ Admin notification
+  async sendAdminMail(dto: any) {
+    return this.sendMail(
+      this.ADMIN_EMAIL,
+      'New Lead Received 🚀',
+      `
+      <h2>New Lead</h2>
+      <p><b>Name:</b> ${dto.name}</p>
+      <p><b>Email:</b> ${dto.email}</p>
+      <p><b>Message:</b> ${dto.message}</p>
       `,
-    });
+    );
   }
 
-  // ✅ 3. When admin marks as "contacted"
+  // 3️⃣ Contacted mail
   async sendContactedMail(to: string, name: string) {
-    return this.send({
-      sender: { name: 'WebNexa Tech', email: process.env.MAIL_FROM },
-      to: [{ email: to, name }],
-      subject: 'We have contacted you ✔️',
-      htmlContent: `
-        <h2>Hello ${name},</h2>
-        <p>Our team has successfully contacted you regarding your request.</p>
-        <p>If you have more questions, just reply to this email.</p>
-        <br/>
-        <p>Regards,<br/>WebNexa Tech Team</p>
+    return this.sendMail(
+      to,
+      'We have contacted you ✔️',
+      `
+      <h2>Hello ${name},</h2>
+      <p>Our team has contacted you regarding your request.</p>
+      <p>We look forward to working with you.</p>
+      <br/>
+      <p>WebNexa Team</p>
       `,
-    });
+    );
   }
 
-  // ✅ 4. When admin marks as "converted"
+  // 4️⃣ Converted mail
   async sendConvertedMail(to: string, name: string) {
-    return this.send({
-      sender: { name: 'WebNexa Tech', email: process.env.MAIL_FROM },
-      to: [{ email: to, name }],
-      subject: 'Your project is now started 🚀',
-      htmlContent: `
-        <h2>Congratulations ${name} 🎉</h2>
-        <p>We are happy to inform you that your project has been approved and is now in progress.</p>
-        <p>Our team will stay in touch with you for next steps.</p>
-        <br/>
-        <p>Regards,<br/>WebNexa Tech Team</p>
+    return this.sendMail(
+      to,
+      'Your project is now started 🚀',
+      `
+      <h2>Hello ${name},</h2>
+      <p>Great news! Your project is now officially started.</p>
+      <p>Our team will be in touch shortly.</p>
+      <br/>
+      <p>WebNexa Team</p>
       `,
-    });
+    );
   }
 }
