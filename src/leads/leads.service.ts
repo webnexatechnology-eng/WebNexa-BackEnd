@@ -1,95 +1,92 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Lead } from './leads.schema';
-import { CreateLeadDto } from './dto/create-lead.dto';
-import { MailService } from '../mail/mail.service';
+import { Injectable, Logger } from '@nestjs/common';
+import * as nodemailer from 'nodemailer';
+import { CreateLeadDto } from '../leads/dto/create-lead.dto';
 
 @Injectable()
-export class LeadsService {
-  constructor(
-    @InjectModel(Lead.name) private leadModel: Model<Lead>,
-    private mailService: MailService,
-  ) { }
+export class MailService {
+  private transporter: nodemailer.Transporter;
+  private readonly logger = new Logger(MailService.name);
 
-  // ✅ CREATE LEAD (FAST RESPONSE)
-  async create(dto: CreateLeadDto) {
+  constructor() {
+    this.transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT),
+      secure: false, // true only for 465
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+  }
+
+  // ✅ 1. Auto reply to client
+  async sendClientMail(to: string, name: string) {
     try {
-      const lead = await this.leadModel.create(dto);
+      const info = await this.transporter.sendMail({
+        from: `"WebNexa" <${process.env.MAIL_FROM}>`,
+        to,
+        subject: 'Thanks for contacting WebNexa',
+        html: `
+          <h2>Hello ${name},</h2>
+          <p>Thank you for contacting <b>WebNexa Tech</b>.</p>
+          <p>We have received your request and will contact you within 24 hours.</p>
+          <br/>
+          <p>Best regards,<br/>WebNexa Team</p>
+        `,
+      });
 
-      this.mailService.sendClientMail(dto.email, dto.name).catch(console.error);
-      this.mailService.sendAdminMail(dto).catch(console.error);
-
-      return {
-        success: true,
-        message: "Lead submitted successfully",
-      };
+      this.logger.log(`Client mail sent: ${info.messageId}`);
+      return info;
     } catch (err) {
-      console.error(err);
-      throw new Error("Failed to save lead");
+      this.logger.error('Client mail failed', err);
+      throw err;
     }
   }
 
+  // ✅ 2. Notify admin
+  async sendAdminMail(dto: CreateLeadDto) {
+    try {
+      const info = await this.transporter.sendMail({
+        from: `"WebNexa Leads" <${process.env.MAIL_FROM}>`,
+        to: process.env.ADMIN_EMAIL,
+        subject: 'New Lead Received 🚀',
+        html: `
+          <h2>New Lead Received</h2>
+          <p><b>Name:</b> ${dto.name}</p>
+          <p><b>Email:</b> ${dto.email}</p>
+          <p><b>Message:</b> ${dto.message}</p>
+        `,
+      });
 
-  async findAll() {
-    return this.leadModel.find().sort({ createdAt: -1 });
-  }
-
-  async findOne(id: string) {
-    const lead = await this.leadModel.findById(id);
-    if (!lead) throw new NotFoundException('Lead not found');
-    return lead;
-  }
-
-  async updateStatus(id: string, status: string) {
-    const lead = await this.leadModel.findByIdAndUpdate(
-      id,
-      { status },
-      { new: true },
-    );
-
-    if (!lead) {
-      throw new NotFoundException("Lead not found");
+      this.logger.log(`Admin mail sent: ${info.messageId}`);
+      return info;
+    } catch (err) {
+      this.logger.error('Admin mail failed', err);
+      throw err;
     }
-
-    // 🔥 Send contacted mail in background
-    if (status === "contacted") {
-      this.mailService.sendContactedMail(lead.email, lead.name).catch(console.error);
-    }
-
-    if (status === "converted") {
-      this.mailService.sendConvertedMail(lead.email, lead.name).catch(console.error);
-    }
-
-
-
-    return lead;
   }
 
-  async delete(id: string) {
-    const lead = await this.leadModel.findByIdAndDelete(id);
-    if (!lead) throw new NotFoundException('Lead not found');
-    return { success: true };
-  }
+  // ✅ 3. When marked as contacted
+  async sendContactedMail(to: string, name: string) {
+    try {
+      const info = await this.transporter.sendMail({
+        from: `"WebNexa" <${process.env.MAIL_FROM}>`,
+        to,
+        subject: 'We have contacted you ✔️',
+        html: `
+          <h2>Hello ${name},</h2>
+          <p>Our team has reviewed your request and contacted you.</p>
+          <p>We look forward to working with you.</p>
+          <br/>
+          <p>Regards,<br/>WebNexa Team</p>
+        `,
+      });
 
-  async getStats() {
-    const total = await this.leadModel.countDocuments();
-
-    const newLeads = await this.leadModel.countDocuments({ status: "new" });
-    const contacted = await this.leadModel.countDocuments({ status: "contacted" });
-    const converted = await this.leadModel.countDocuments({ status: "converted" });
-
-    const recent = await this.leadModel
-      .find()
-      .sort({ createdAt: -1 })
-      .limit(5);
-
-    return {
-      total,
-      newLeads,
-      contacted,
-      converted,
-      recent,
-    };
+      this.logger.log(`Contacted mail sent: ${info.messageId}`);
+      return info;
+    } catch (err) {
+      this.logger.error('Contacted mail failed', err);
+      throw err;
+    }
   }
 }
